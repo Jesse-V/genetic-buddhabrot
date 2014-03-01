@@ -8,6 +8,9 @@
 
 
 const std::size_t IMAGE_SIZE = 4096;
+const std::size_t DNA_LENGTH = 1024;
+const std::size_t MUTATE_RATE = 3;
+
 
 
 int main(int argc, char** argv)
@@ -20,6 +23,98 @@ int main(int argc, char** argv)
     return EXIT_SUCCESS;
     //return EXIT_FAILURE;
 }
+
+
+
+std::string mate(std::string a, std::string b)
+{
+    std::string child = a;
+
+    for (int j = 0; j < DNA_LENGTH; j++)
+    {
+             if (a[j] == '+' && b[j] == '+')
+            child[j] = '+';
+        else if (a[j] == '+' && b[j] == '-')
+            child[j] = '-';
+        else if (a[j] == '+' && b[j] == '*')
+            child[j] = '*';
+        else if (a[j] == '+' && b[j] == '/')
+            child[j] = '/';
+        else if (a[j] == '-' && b[j] == '+')
+            child[j] = '-';
+        else if (a[j] == '-' && b[j] == '-')
+            child[j] = '+';
+        else if (a[j] == '-' && b[j] == '*')
+            child[j] = '/';
+        else if (a[j] == '-' && b[j] == '/')
+            child[j] = '*';
+        else if (a[j] == '*' && b[j] == '+')
+            child[j] = '*';
+        else if (a[j] == '*' && b[j] == '-')
+            child[j] = '/';
+        else if (a[j] == '*' && b[j] == '*')
+            child[j] = '+';
+        else if (a[j] == '*' && b[j] == '/')
+            child[j] = '-';
+        else if (a[j] == '/' && b[j] == '+')
+            child[j] = '/';
+        else if (a[j] == '/' && b[j] == '-')
+            child[j] = '*';
+        else if (a[j] == '/' && b[j] == '*')
+            child[j] = '-';
+        else if (a[j] == '/' && b[j] == '/')
+            child[j] = '+';
+    }
+
+    return child;
+}
+
+
+
+std::string mutate(const std::string& str)
+{
+    auto mersenneTwister = getMersenneTwister();
+    std::uniform_int_distribution<int> randomInt(1, 4);
+
+    std::string mutated = str;
+    for (std::size_t j = 0; j < MUTATE_RATE; j++)
+    {
+        int type = randomInt(mersenneTwister);
+        switch (type)
+        {
+            case '1' :
+                mutated[j] = '+';
+                break;
+            case '2' :
+                mutated[j] = '+';
+                break;
+            case '3' :
+                mutated[j] = '+';
+                break;
+            case '4' :
+                mutated[j] = '+';
+                break;
+        }
+    }
+
+    return mutated;
+}
+
+
+
+std::mt19937 getMersenneTwister()
+{
+    std::array<int, std::mt19937::state_size> seed_data;
+    std::random_device r;
+    std::generate_n(seed_data.data(), seed_data.size(), std::ref(r));
+    std::seed_seq seq(std::begin(seed_data), std::end(seed_data));
+    std::mt19937 mersenneTwister(seq);
+    return mersenneTwister;
+}
+
+
+
+
 
 
 
