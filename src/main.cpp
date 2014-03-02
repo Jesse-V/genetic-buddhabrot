@@ -8,7 +8,8 @@
 
 
 const std::size_t IMAGE_SIZE = 4096;
-const std::size_t DNA_LENGTH = 1024;
+const std::size_t POPULATION_SIZE = 30;
+const std::size_t DNA_LENGTH = 32;
 const std::size_t MUTATE_RATE = 3;
 
 
@@ -20,8 +21,96 @@ int main(int argc, char** argv)
     auto gradientMatrix = getGradient(matrix, metadata.first, metadata.second);
     writeGradient(gradientMatrix);
 
+    auto mersenneTwister = getMersenneTwister();
+    std::uniform_int_distribution<int> randomInt(1, 4);
+
+    std::vector<std::string> population;
+    for (int j = 0; j < POPULATION_SIZE; j++)
+    {
+        std::string str(DNA_LENGTH, '+');
+        for (std::size_t k = 0; k < DNA_LENGTH; k++)
+        {
+            int type = randomInt(mersenneTwister);
+            switch (type)
+            {
+                case 1 :
+                    str[k] = '+';
+                    break;
+                case 2 :
+                    str[k] = '-';
+                    break;
+                case 3 :
+                    str[k] = '/';
+                    break;
+                case 4 :
+                    str[k] = '*';
+                    break;
+            }
+        }
+
+        population.push_back(str);
+    }
+
+    cycle(population, gradientMatrix);
+
     return EXIT_SUCCESS;
     //return EXIT_FAILURE;
+}
+
+
+
+void cycle(std::vector<std::string>& population, const Matrix2D& image)
+{
+    std::vector<ScoredDNA> scores;
+    for (const auto &individual : population)
+    {
+        auto value = score(individual, image);
+        scores.push_back(std::make_pair(value, individual));
+    }
+
+    std::sort(scores.begin(), scores.end(), [](ScoredDNA a, ScoredDNA b) {
+        return a.first < b.first;
+    });
+
+    for (const auto &score : scores)
+        std::cout << score.first << "," << score.second << std::endl;
+}
+
+
+
+long score(const std::string& str, const Matrix2D& image)
+{
+    std::size_t error = 0;
+
+    for (std::size_t x = 0; x < 512; x++)
+    {
+        for (std::size_t y = 0; y < 512; y++)
+        {
+            long a = x, b = y;
+
+            bool state = true;
+            for (std::size_t j = 0; j < str.size(); j++)
+            {
+                if (str[j] == '+')
+                    a = a + b;
+                if (str[j] == '-')
+                    a = a < b ? 0 : a - b;
+                if (str[j] == '*')
+                    a = a * b < 0 ? 2147483648 : a * b;
+                if (str[j] == '/')
+                    a = b == 0 ? 2147483648 : a / b;
+
+                b = state ? x : y;
+                state = !state;
+            }
+
+            auto temp = a > image[x][y] ? a - image[x][y] : image[x][y] - a;
+            if (temp + error > 0)
+                error += temp;
+        }
+    }
+
+    return error;
 }
 
 
@@ -82,17 +171,17 @@ std::string mutate(const std::string& str)
         int type = randomInt(mersenneTwister);
         switch (type)
         {
-            case '1' :
+            case 1 :
                 mutated[j] = '+';
                 break;
-            case '2' :
-                mutated[j] = '+';
+            case 2 :
+                mutated[j] = '-';
                 break;
-            case '3' :
-                mutated[j] = '+';
+            case 3 :
+                mutated[j] = '/';
                 break;
-            case '4' :
-                mutated[j] = '+';
+            case 4 :
+                mutated[j] = '*';
                 break;
         }
     }

@@ -6,9 +6,12 @@
 #include <vector>
 #include <string>
 
-typedef std::vector<std::vector<unsigned long>> Matrix2D;
+typedef std::vector<std::vector<std::size_t>> Matrix2D;
 typedef std::vector<std::string> DNA;
+typedef std::pair<std::size_t, std::string> ScoredDNA;
 
+void cycle(std::vector<std::string>& population, const Matrix2D& image);
+long score(const std::string& str, const Matrix2D& image);
 std::string mate(std::string a, std::string b);
 std::string mutate(const std::string& str);
 std::mt19937 getMersenneTwister();
