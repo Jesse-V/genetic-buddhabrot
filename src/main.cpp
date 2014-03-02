@@ -19,7 +19,7 @@ int main(int argc, char** argv)
     Matrix2D matrix = compressMatrix(readRawMatrix("anti_histogram.txt"));
     auto metadata = getMetadata(matrix); //don't worry, it's just metadata...
     auto gradientMatrix = getGradient(matrix, metadata.first, metadata.second);
-    writeGradient(gradientMatrix);
+    writeGradient(gradientMatrix, "image.ppm");
 
     auto mersenneTwister = getMersenneTwister();
     std::uniform_int_distribution<int> randomInt(1, 4);
@@ -72,8 +72,25 @@ void cycle(std::vector<std::string>& population, const Matrix2D& image)
         return a.first < b.first;
     });
 
-    for (const auto &score : scores)
-        std::cout << score.first << "," << score.second << std::endl;
+    //for (const auto &score : scores)
+    //    std::cout << score.first << "," << score.second << std::endl;
+
+    std::vector<std::string> newPopulation;
+    for (int j = 0 ; j < POPULATION_SIZE / 2; j++)
+        newPopulation.push_back(scores[j].second);
+
+    for (int j = 0; j < POPULATION_SIZE / 2; j++)
+        newPopulation.push_back(mutate(mate(scores[j].second, scores[j + 1].second)));
+
+    //for (const auto &k : newPopulation)
+    //    std::cout << k << std::endl;
+
+    std::cout << newPopulation.size() << std::endl;
+
+    std::cout << scores[0].first << ", " << scores[0].second << std::endl;
+    std::ostringstream oss("");
+    oss << "bestResult-" << scores[0].first << ".ppm";
+    visualizeIndividual(scores[0].second, oss.str());
 }
 
 
@@ -86,31 +103,37 @@ long score(const std::string& str, const Matrix2D& image)
     {
         for (std::size_t y = 0; y < 512; y++)
         {
-            long a = x, b = y;
-
-            bool state = true;
-            for (std::size_t j = 0; j < str.size(); j++)
-            {
-                if (str[j] == '+')
-                    a = a + b;
-                if (str[j] == '-')
-                    a = a < b ? 0 : a - b;
-                if (str[j] == '*')
-                    a = a * b < 0 ? 2147483648 : a * b;
-                if (str[j] == '/')
-                    a = b == 0 ? 2147483648 : a / b;
-
-                b = state ? x : y;
-                state = !state;
-            }
-
-            auto temp = a > image[x][y] ? a - image[x][y] : image[x][y] - a;
-            if (temp + error > 0)
-                error += temp;
+            auto a = calculate(x, y, str);
+            error += a > image[x][y] ? a - image[x][y] : image[x][y] - a;
         }
     }
 
     return error;
+}
+
+
+
+long calculate(std::size_t x, std::size_t y, const std::string& str)
+{
+    long a = x, b = y;
+
+    bool state = true;
+    for (std::size_t j = 0; j < str.size(); j++)
+    {
+        if (str[j] == '+')
+            a = a + b;
+        if (str[j] == '-')
+            a = a < b ? 0 : a - b;
+        if (str[j] == '*')
+            a = a * b < 0 ? 2147483648 : a * b;
+        if (str[j] == '/')
+            a = b == 0 ? 2147483648 : a / b;
+
+        b = state ? x : y;
+        state = !state;
+    }
+
+    return a;
 }
 
 
@@ -203,6 +226,44 @@ std::mt19937 getMersenneTwister()
 
 
 
+void visualizeIndividual(const std::string& str, const std::string& filename)
+{
+    Matrix2D matrix;
+    for (std::size_t j = 0; j < 512; j++)
+    {
+        std::vector<unsigned long> row;
+        for (std::size_t k = 0; k < 512; k++)
+            row.push_back(calculate(j, k, str));
+        matrix.push_back(row);
+    }
+
+    float max = 0;
+    for (const auto &row : matrix)
+        for (const auto &cell : row)
+            if (cell > max)
+                max = cell;
+
+    std::cout << "Writing result... ";
+    std::cout.flush();
+
+    std::ofstream fout;
+    fout.open(filename, std::ofstream::out);
+
+    fout << "P2 512 512 255" << std::endl;
+    for (std::size_t j = 0; j < 512; j++)
+    {
+        for (std::size_t k = 0; k < 512; k++)
+            fout << (int)(matrix[j][k] * 255 / max) << " ";
+        fout << std::endl;
+    }
+
+    fout.close();
+
+    std::cout << "done." << std::endl;
+    std::cout.flush();
+}
+
+
 
 
 
@@ -289,6 +350,7 @@ std::pair<float, float> getMetadata(const Matrix2D& matrix)
 Matrix2D getGradient(const Matrix2D& matrix, float sum, float maxDensity)
 {
     Matrix2D gradientMatrix;
+    std::cout << sum << ", " << maxDensity << std::endl;
 
     for (const auto &row : matrix)
     {
@@ -306,13 +368,13 @@ Matrix2D getGradient(const Matrix2D& matrix, float sum, float maxDensity)
 
 
 
-void writeGradient(const Matrix2D& gradientMatrix)
+void writeGradient(const Matrix2D& gradientMatrix, const std::string& filename)
 {
     std::cout << "Writing... ";
     std::cout.flush();
 
     std::ofstream fout;
-    fout.open(std::string("image.ppm"), std::ofstream::out);
+    fout.open(filename, std::ofstream::out);
 
     fout << "P2 512 512 255" << std::endl;
     for (const auto &row : gradientMatrix)
