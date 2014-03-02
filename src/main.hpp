@@ -7,10 +7,10 @@
 #include <string>
 
 typedef std::vector<std::vector<std::size_t>> Matrix2D;
-typedef std::vector<std::string> DNA;
+typedef std::vector<std::string> Population;
 typedef std::pair<std::size_t, std::string> ScoredDNA;
 
-void cycle(std::vector<std::string>& population, const Matrix2D& image);
+Population cycle(std::vector<std::string>& population, const Matrix2D& image);
 long score(const std::string& str, const Matrix2D& image);
 long calculate(std::size_t a, std::size_t b, const std::string& str);
 std::string mate(std::string a, std::string b);

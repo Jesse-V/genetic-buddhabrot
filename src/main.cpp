@@ -8,7 +8,7 @@
 
 
 const std::size_t IMAGE_SIZE = 4096;
-const std::size_t POPULATION_SIZE = 30;
+const std::size_t POPULATION_SIZE = 64;
 const std::size_t DNA_LENGTH = 32;
 const std::size_t MUTATE_RATE = 3;
 
@@ -24,7 +24,7 @@ int main(int argc, char** argv)
     auto mersenneTwister = getMersenneTwister();
     std::uniform_int_distribution<int> randomInt(1, 4);
 
-    std::vector<std::string> population;
+    Population population;
     for (int j = 0; j < POPULATION_SIZE; j++)
     {
         std::string str(DNA_LENGTH, '+');
@@ -51,7 +51,8 @@ int main(int argc, char** argv)
         population.push_back(str);
     }
 
-    cycle(population, gradientMatrix);
+    for (int j = 0; j < 16; j++)
+        population = cycle(population, gradientMatrix);
 
     return EXIT_SUCCESS;
     //return EXIT_FAILURE;
@@ -59,7 +60,7 @@ int main(int argc, char** argv)
 
 
 
-void cycle(std::vector<std::string>& population, const Matrix2D& image)
+Population cycle(Population& population, const Matrix2D& image)
 {
     std::vector<ScoredDNA> scores;
     for (const auto &individual : population)
@@ -72,25 +73,20 @@ void cycle(std::vector<std::string>& population, const Matrix2D& image)
         return a.first < b.first;
     });
 
-    //for (const auto &score : scores)
-    //    std::cout << score.first << "," << score.second << std::endl;
-
-    std::vector<std::string> newPopulation;
+    Population newPopulation;
     for (int j = 0 ; j < POPULATION_SIZE / 2; j++)
-        newPopulation.push_back(scores[j].second);
+        newPopulation.push_back(scores[j].second); //only save best half
 
-    for (int j = 0; j < POPULATION_SIZE / 2; j++)
+    for (int j = 0; j < POPULATION_SIZE / 2; j++) //mating and mutation
         newPopulation.push_back(mutate(mate(scores[j].second, scores[j + 1].second)));
-
-    //for (const auto &k : newPopulation)
-    //    std::cout << k << std::endl;
-
     std::cout << newPopulation.size() << std::endl;
 
     std::cout << scores[0].first << ", " << scores[0].second << std::endl;
     std::ostringstream oss("");
     oss << "bestResult-" << scores[0].first << ".ppm";
-    visualizeIndividual(scores[0].second, oss.str());
+    visualizeIndividual(scores[0].second, oss.str()); //output best so far
+
+    return newPopulation; //return result
 }
 
 
@@ -253,7 +249,8 @@ void visualizeIndividual(const std::string& str, const std::string& filename)
     for (std::size_t j = 0; j < 512; j++)
     {
         for (std::size_t k = 0; k < 512; k++)
-            fout << (int)(matrix[j][k] * 255 / max) << " ";
+            fout << (matrix[j][k] > 255 ? 255 : matrix[j][k]) << " ";
+
         fout << std::endl;
     }
 
@@ -350,7 +347,6 @@ std::pair<float, float> getMetadata(const Matrix2D& matrix)
 Matrix2D getGradient(const Matrix2D& matrix, float sum, float maxDensity)
 {
     Matrix2D gradientMatrix;
-    std::cout << sum << ", " << maxDensity << std::endl;
 
     for (const auto &row : matrix)
     {
